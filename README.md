@@ -46,7 +46,7 @@ Families manually track dozens of consumables across pantry, dairy, vegetables, 
 
 ## Live Demo
 
-🔗 **[homeagent.netlify.app](https://nimble-cat-674cf7.netlify.app)**
+🔗 **(https://homesync45.netlify.app/)**
 
 **Test credentials:** Sign in with any Google account — onboarding takes 2 minutes.
 
