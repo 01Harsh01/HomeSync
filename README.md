@@ -268,4 +268,4 @@ MIT License — free to use, modify, and distribute.
 
 ---
 
-*Built with ❤️ for Japan Hackathon 2026*
+*Built with ❤️ for FarAway 2026*
