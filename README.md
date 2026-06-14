@@ -1,4 +1,4 @@
-# 🏠 HomeAgent — Autonomous Household Inventory & Ordering Agent
+# 🏠 HomeSync — Autonomous Household Inventory & Ordering Agent
 
 > **Submitted for Japan Hackathon 2026**
 > An AI-powered multi-agent system that tracks household consumables, predicts depletion, and automates replenishment — so your family never runs out of essentials.
