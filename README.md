@@ -14,12 +14,9 @@
 - [Key Features](#key-features)
 - [Tech Stack](#tech-stack)
 - [Project Structure](#project-structure)
-- [Setup & Deployment](#setup--deployment)
 - [How It Works](#how-it-works)
 - [Agent Pipeline](#agent-pipeline)
 - [Screenshots](#screenshots)
-- [Future Roadmap](#future-roadmap)
-- [Team](#team)
 
 ---
 
