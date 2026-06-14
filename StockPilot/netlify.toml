@@ -1,0 +1,11 @@
+# ── Netlify deployment config ──────────────────────────────
+# Drop the homeagent/ folder into Netlify → Deploy manually
+# or connect your GitHub repo and set publish dir to "homeagent"
+
+[build]
+  publish = "."          # root of the zipped folder is the site root
+
+[[redirects]]
+  from   = "/*"
+  to     = "/index.html"
+  status = 200
