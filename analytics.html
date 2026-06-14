@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>HomeAgent — Analytics</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="css/styles.css"/>
+  <style>
+    .chart-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;box-shadow:var(--shadow-sm);transition:box-shadow .3s,transform .3s}
+    .chart-card:hover{box-shadow:var(--shadow-md);transform:translateY(-2px)}
+    .chart-wrap{position:relative;height:220px;margin-top:16px}
+    .cat-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
+    .cat-row:last-child{border-bottom:none}
+    .cat-bar-bg{width:100px;height:4px;border-radius:2px;background:var(--surface2);overflow:hidden}
+    .cat-bar-fill{height:100%;border-radius:2px}
+  </style>
+</head>
+<body>
+<div class="app-shell">
+  <main class="main-content">
+    <div class="metrics-grid" id="metrics-row">
+      <div class="metric-card"><div class="metric-label">Avg weekly spend</div><div class="metric-value" id="m-weekly">₹—</div><div class="metric-sub">Last 4 orders</div></div>
+      <div class="metric-card"><div class="metric-label">Most reordered</div><div class="metric-value" id="m-top" style="font-size:16px">—</div><div class="metric-sub" id="m-top-sub"></div></div>
+      <div class="metric-card"><div class="metric-label">Total saved</div><div class="metric-value" id="m-saved">₹—</div><div class="metric-sub up">Via coupons & bulk deals</div></div>
+      <div class="metric-card"><div class="metric-label">Items tracked</div><div class="metric-value" id="m-items">—</div><div class="metric-sub">Across all categories</div></div>
+    </div>
+
+    <div class="two-col">
+      <div class="chart-card">
+        <div class="card-header" style="margin-bottom:0"><span class="card-title">Weekly spend trend</span></div>
+        <div class="chart-wrap"><canvas id="spendChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="card-header" style="margin-bottom:0"><span class="card-title">Spend by category</span></div>
+        <div class="chart-wrap"><canvas id="catChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="chart-card">
+        <div class="card-title" style="margin-bottom:16px">Category breakdown</div>
+        <div id="cat-bars"></div>
+      </div>
+      <div class="chart-card">
+        <div class="card-header" style="margin-bottom:0"><span class="card-title">Forecast accuracy over time</span></div>
+        <div class="chart-wrap"><canvas id="accChart"></canvas></div>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script type="module">
+import { initAuthGuard, signOutUser, auth } from "./js/auth.js";
+import { renderShell } from "./js/shell.js";
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { collection, getDocs, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { db } from "./js/firebase-config.js";
+
+import { initAllAnimations } from "./js/animations.js";
+  renderShell("analytics", "Analytics");
+initAuthGuard(true);
+  initAllAnimations();
+document.getElementById("signout-btn").addEventListener("click", signOutUser);
+
+const textColor = "#7A8499";
+const gridColor = "rgba(255,255,255,0.05)";
+const baseFont  = { family:"Inter, system-ui, sans-serif", size:11 };
+Chart.defaults.color       = textColor;
+Chart.defaults.font        = baseFont;
+Chart.defaults.plugins.legend.display = false;
+Chart.defaults.plugins.tooltip.backgroundColor  = "#1C2438";
+Chart.defaults.plugins.tooltip.borderColor      = "rgba(255,255,255,.1)";
+Chart.defaults.plugins.tooltip.borderWidth      = 1;
+Chart.defaults.plugins.tooltip.titleColor       = "#0D0F1A";
+Chart.defaults.plugins.tooltip.bodyColor        = "#7A8499";
+Chart.defaults.plugins.tooltip.padding          = 10;
+Chart.defaults.plugins.tooltip.cornerRadius     = 8;
+
+const scaleBase = {
+  x:{ grid:{ color:gridColor, drawBorder:false }, ticks:{ font:baseFont } },
+  y:{ grid:{ color:gridColor, drawBorder:false }, ticks:{ font:baseFont } }
+};
+
+onAuthStateChanged(auth, async user => {
+  if (!user) return;
+  const [ordSnap, invSnap, histSnap] = await Promise.all([
+    getDocs(query(collection(db, "users", user.uid, "orders"), orderBy("placedAt","desc"), limit(20))),
+    getDocs(collection(db, "users", user.uid, "inventory")),
+    getDocs(query(collection(db, "users", user.uid, "purchaseHistory"), orderBy("purchasedAt","desc"), limit(50)))
+  ]);
+
+  const orders  = ordSnap.docs.map(d => d.data());
+  const items   = invSnap.docs.map(d => d.data());
+  const history = histSnap.docs.map(d => d.data());
+
+  // Metrics
+  const totalSaved  = orders.reduce((s, o) => s + (o.couponSaving || 0), 0);
+  const avgWeekly   = orders.length ? Math.round(orders.slice(0,4).reduce((s, o) => s + (o.total || 0), 0) / Math.min(4, orders.length)) : 0;
+
+  // Most purchased item
+  const itemCounts = {};
+  history.forEach(h => { itemCounts[h.name] = (itemCounts[h.name] || 0) + 1; });
+  const topItem = Object.entries(itemCounts).sort((a,b)=>b[1]-a[1])[0];
+
+  document.getElementById("m-weekly").textContent = `₹${avgWeekly.toLocaleString("en-IN")}`;
+  document.getElementById("m-saved").textContent  = `₹${totalSaved.toLocaleString("en-IN")}`;
+  document.getElementById("m-items").textContent  = items.length;
+  if (topItem) {
+    document.getElementById("m-top").textContent     = topItem[0];
+    document.getElementById("m-top-sub").textContent = `Ordered ${topItem[1]} time${topItem[1]!==1?"s":""}`;
+  }
+
+  // Spend chart — last 6 orders as weekly bars
+  const spendLabels = orders.slice(0,6).reverse().map((_,i)=>`Order ${i+1}`);
+  const spendData   = orders.slice(0,6).reverse().map(o => o.total || 0);
+
+  new Chart(document.getElementById("spendChart"), {
+    type:"bar",
+    data:{ labels:spendLabels, datasets:[{ data:spendData, backgroundColor:"rgba(37,99,235,.35)", borderColor:"#2563EB", borderWidth:1.5, borderRadius:5, borderSkipped:false }] },
+    options:{ responsive:true, maintainAspectRatio:false, scales:{ ...scaleBase, y:{ ...scaleBase.y, ticks:{ ...scaleBase.y.ticks, callback:v=>`₹${v}` } } } }
+  });
+
+  // Category donut
+  const catTotals = {};
+  items.forEach(item => {
+    catTotals[item.category || "Other"] = (catTotals[item.category||"Other"] || 0) + (item.estimatedPrice || 0);
+  });
+  const catColors = ["#2563EB","#059669","#D97706","#7C3AED","#DC2626","#9CA3AF"];
+
+  new Chart(document.getElementById("catChart"), {
+    type:"doughnut",
+    data:{ labels:Object.keys(catTotals), datasets:[{ data:Object.values(catTotals), backgroundColor:catColors, borderWidth:0, hoverOffset:6 }] },
+    options:{ responsive:true, maintainAspectRatio:false, cutout:"68%", plugins:{ legend:{ display:true, position:"right", labels:{ font:{ size:11 }, color:textColor, boxWidth:10, padding:12 } } } }
+  });
+
+  // Category bars
+  const sortedCats = Object.entries(catTotals).sort((a,b)=>b[1]-a[1]);
+  const maxVal     = sortedCats[0]?.[1] || 1;
+  document.getElementById("cat-bars").innerHTML = sortedCats.map(([cat, val], i) => `
+    <div class="cat-row">
+      <span style="color:var(--muted)">${cat}</span>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="cat-bar-bg"><div class="cat-bar-fill" style="width:${Math.round(val/maxVal*100)}%;background:${catColors[i%catColors.length]}"></div></div>
+        <span style="font-size:12px;font-weight:600;min-width:50px;text-align:right">₹${val.toLocaleString("en-IN")}</span>
+      </div>
+    </div>`).join("");
+
+  // Accuracy chart — static demo data
+  new Chart(document.getElementById("accChart"), {
+    type:"line",
+    data:{ labels:["Jan","Feb","Mar","Apr","May","Jun"], datasets:[{ data:[74,79,83,85,87,91], borderColor:"#22C55E", backgroundColor:"rgba(34,197,94,.07)", borderWidth:2, pointBackgroundColor:"#22C55E", pointRadius:4, fill:true, tension:.35 }] },
+    options:{ responsive:true, maintainAspectRatio:false, scales:{ ...scaleBase, y:{ ...scaleBase.y, min:60, max:100, ticks:{ ...scaleBase.y.ticks, callback:v=>`${v}%` } } } }
+  });
+});
+</script>
+</body>
+</html>

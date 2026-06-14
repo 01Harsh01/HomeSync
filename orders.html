@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>HomeAgent — Pending Carts</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="css/styles.css"/>
+  <style>
+    /* ── Cart cards ── */
+    .cart-card {
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      margin-bottom: 18px;
+      box-shadow: var(--shadow-sm);
+      animation: cardSlideIn .4s cubic-bezier(0.34,1.56,0.64,1) both;
+      transition: box-shadow .3s, transform .3s;
+    }
+    .cart-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+    @keyframes cardSlideIn {
+      from { opacity:0; transform:translateY(20px) scale(.97); }
+      to   { opacity:1; transform:translateY(0) scale(1); }
+    }
+    .cart-card-header {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:14px 20px;
+      border-bottom:1px solid var(--border);
+      background: linear-gradient(135deg, var(--surface2), var(--surface));
+    }
+    .cart-platform { display:flex; align-items:center; gap:10px; }
+    .cart-platform-name { font-size:14px; font-weight:700; color:var(--text); }
+    .cart-id { font-size:12px; color:var(--muted); }
+
+    .cart-card-body { padding:0 20px; }
+    .cart-row {
+      display:flex; align-items:center; gap:12px;
+      padding:12px 0; border-bottom:1px solid var(--border);
+      transition: background .15s;
+    }
+    .cart-row:last-child { border-bottom:none; }
+    .cart-row:hover { background:var(--surface2); border-radius:var(--radius); padding-left:8px; }
+
+    .cart-emoji {
+      width:38px; height:38px; border-radius:10px;
+      display:flex; align-items:center; justify-content:center;
+      flex-shrink:0; box-shadow:var(--shadow-sm);
+      transition: transform .2s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    .cart-emoji svg { width:17px; height:17px; }
+    .cart-emoji:hover { transform: scale(1.15) rotate(5deg); }
+
+    .cart-item-info { flex:1; min-width:0; }
+    .cart-item-name { font-size:13px; font-weight:600; color:var(--text); }
+    .cart-item-brand { font-size:11px; color:var(--muted); margin-top:2px; display:flex; align-items:center; gap:5px; }
+    .sub-chip { font-size:10px; padding:1px 7px; border-radius:20px; background:var(--warn-dim); color:var(--warn); font-weight:600; }
+
+    .qty-ctrl { display:flex; align-items:center; gap:8px; }
+    .qty-btn {
+      width:28px; height:28px; border-radius:8px;
+      background:var(--surface2); border:1.5px solid var(--border-strong);
+      color:var(--text); font-size:16px;
+      display:flex; align-items:center; justify-content:center;
+      cursor:pointer; transition:all .2s cubic-bezier(0.34,1.56,0.64,1);
+      line-height:1; user-select:none; font-family:var(--font);
+    }
+    .qty-btn:hover { background:#2563EB; color:#fff; border-color:#2563EB; transform:scale(1.15); }
+    .qty-btn:active { transform:scale(.9); }
+    .qty-val { font-size:14px; font-weight:700; min-width:22px; text-align:center; color:var(--text); }
+
+    .item-price { font-size:13px; font-weight:700; color:var(--text); min-width:56px; text-align:right; }
+
+    .remove-btn {
+      width:28px; height:28px; border:none; background:transparent;
+      color:var(--muted); cursor:pointer; border-radius:7px;
+      transition:all .2s; display:flex; align-items:center; justify-content:center;
+    }
+    .remove-btn:hover { background:var(--danger-dim); color:var(--danger); transform:scale(1.1); }
+    .remove-btn svg { width:14px; height:14px; display:block; }
+
+    .cart-footer {
+      padding:16px 20px;
+      border-top:1.5px solid var(--border);
+      background:var(--surface2);
+      display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;
+    }
+    .delivery-row { display:flex; align-items:center; gap:7px; font-size:12px; color:var(--muted); }
+    .delivery-row svg { width:13px; height:13px; }
+    .savings-note { font-size:11px; color:var(--success); margin-top:4px; font-weight:600; }
+    .cart-total-label { font-size:11px; color:var(--muted); }
+    .cart-total-val { font-size:22px; font-weight:800; color:var(--text); letter-spacing:-.02em; }
+    .cart-actions { display:flex; gap:8px; flex-shrink:0; }
+
+    /* ── Approve button — very visible ── */
+    .btn-approve {
+      display:flex; align-items:center; gap:7px;
+      padding:10px 22px; border-radius:var(--radius);
+      background:#059669; color:#fff;
+      font-size:13px; font-weight:700;
+      border:none; cursor:pointer; font-family:var(--font);
+      box-shadow:0 3px 12px rgba(5,150,105,.35);
+      transition:all .2s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    .btn-approve:hover { background:#047857; transform:translateY(-2px) scale(1.03); box-shadow:0 6px 20px rgba(5,150,105,.4); }
+    .btn-approve:active { transform:scale(.97); }
+    .btn-approve:disabled { opacity:.5; cursor:not-allowed; transform:none; }
+    .btn-approve svg { width:14px; height:14px; }
+
+    .btn-decline {
+      display:flex; align-items:center; gap:6px;
+      padding:10px 16px; border-radius:var(--radius);
+      background:var(--surface); color:var(--muted);
+      font-size:13px; font-weight:600;
+      border:1.5px solid var(--border-strong); cursor:pointer; font-family:var(--font);
+      transition:all .2s;
+    }
+    .btn-decline:hover { background:var(--danger-dim); color:var(--danger); border-color:rgba(220,38,38,.3); }
+
+    /* ── Empty state ── */
+    .empty-state {
+      text-align:center; padding:72px 24px;
+      animation: fadeInUp .5s ease both;
+    }
+    @keyframes fadeInUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+    .empty-icon {
+      width:64px; height:64px; border-radius:18px;
+      background:linear-gradient(135deg,var(--surface2),var(--surface3));
+      border:1.5px solid var(--border);
+      display:flex; align-items:center; justify-content:center;
+      margin:0 auto 20px;
+      box-shadow:var(--shadow-sm);
+    }
+    .empty-icon svg { width:28px; height:28px; color:var(--muted); }
+    .empty-title { font-size:17px; font-weight:700; color:var(--text); margin-bottom:8px; }
+    .empty-desc { font-size:13px; color:var(--muted); line-height:1.7; max-width:320px; margin:0 auto; }
+    .empty-badge {
+      display:inline-flex; align-items:center; gap:6px;
+      margin-top:16px; padding:6px 14px; border-radius:20px;
+      background:var(--success-dim); color:var(--success);
+      font-size:12px; font-weight:600;
+    }
+
+    /* ── Loading state ── */
+    .loading-state { text-align:center; padding:48px; }
+    .loading-spinner {
+      width:36px; height:36px;
+      border:3px solid var(--border);
+      border-top-color:#2563EB;
+      border-radius:50%;
+      animation:spin .8s linear infinite;
+      margin:0 auto 14px;
+    }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .loading-text { font-size:13px; color:var(--muted); }
+
+    /* ── Error state ── */
+    .error-state {
+      background:var(--danger-dim); border:1px solid rgba(220,38,38,.2);
+      border-radius:var(--radius-lg); padding:16px 20px;
+      font-size:13px; color:var(--danger); margin-bottom:16px;
+      display:none;
+    }
+    .error-state.visible { display:block; }
+  </style>
+</head>
+<body>
+<div class="app-shell">
+  <main class="main-content">
+
+    <!-- Error banner -->
+    <div class="error-state" id="error-banner"></div>
+
+    <!-- Page header info -->
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+      <div>
+        <div style="font-size:13px;color:var(--muted);margin-top:2px" id="cart-count-text">Checking for pending carts…</div>
+      </div>
+      <button class="btn btn-ghost" style="font-size:12px;gap:6px" onclick="refreshCarts()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
+        Refresh
+      </button>
+    </div>
+
+    <!-- Carts container -->
+    <div id="carts-container">
+      <div class="loading-state">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Loading pending carts…</div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script type="module">
+import { initAuthGuard, signOutUser, auth } from "./js/auth.js";
+import { renderShell } from "./js/shell.js";
+import { initAllAnimations } from "./js/animations.js";
+import { ApprovalAgent, ShoppingAgent } from "./js/agents/pipeline.js";
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import {
+  collection, query, where, getDocs,
+  onSnapshot, orderBy
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { db } from "./js/firebase-config.js";
+
+renderShell("orders", "Pending Carts");
+initAuthGuard(true);
+initAllAnimations();
+document.getElementById("signout-btn").addEventListener("click", signOutUser);
+
+let userId    = null;
+let unsubscribe = null; // Firestore realtime listener
+const state   = { carts: [] };
+
+// ── Icon + color map for item categories ───────────────────
+const categoryIcons = {
+  Dairy:      { color:"#2563EB", bg:"rgba(37,99,235,0.10)",  svg:'<path d="M8 2h8M9 2v4l-3 4v10a2 2 0 002 2h8a2 2 0 002-2V10l-3-4V2"/>' },
+  Pantry:     { color:"#D97706", bg:"rgba(217,119,6,0.10)",  svg:'<path d="M3 3h18v18H3z"/><path d="M3 9h18"/>' },
+  Vegetables: { color:"#16A34A", bg:"rgba(22,163,74,0.10)",  svg:'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M12 8v8"/>' },
+  Spices:     { color:"#DC2626", bg:"rgba(220,38,38,0.10)",  svg:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/>' },
+  Bakery:     { color:"#D97706", bg:"rgba(217,119,6,0.10)",  svg:'<rect x="3" y="9" width="18" height="11" rx="2"/><path d="M7 9V6a5 5 0 0110 0v3"/>' },
+  Cleaning:   { color:"#7C3AED", bg:"rgba(124,58,237,0.10)", svg:'<path d="M3 3l18 18M9 3v6m6-6v6M3 9h18"/>' },
+  Beverages:  { color:"#92400E", bg:"rgba(146,64,14,0.10)",  svg:'<path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/>' },
+  Meat:       { color:"#B91C1C", bg:"rgba(185,28,28,0.10)",  svg:'<path d="M12 2a7 7 0 017 7c0 5-7 13-7 13S5 14 5 9a7 7 0 017-7z"/>' },
+  Default:    { color:"#2563EB", bg:"rgba(37,99,235,0.10)",  svg:'<circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/>' },
+};
+
+function categoryIcon(category) {
+  const c = categoryIcons[category] || categoryIcons.Default;
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="${c.color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${c.svg}</svg>`;
+}
+function categoryBg(category) {
+  return (categoryIcons[category] || categoryIcons.Default).bg;
+}
+
+// ── Auth → start listener ──────────────────────────────────
+onAuthStateChanged(auth, user => {
+  if (!user) return;
+  userId = user.uid;
+  startCartListener();
+});
+
+// ── Realtime listener — fires immediately + on any change ──
+function startCartListener() {
+  // Clean up previous listener
+  if (unsubscribe) unsubscribe();
+
+  try {
+    // Simple query — no orderBy to avoid composite index requirement
+    const q = query(
+      collection(db, "users", userId, "carts"),
+      where("status", "==", "pending_approval")
+    );
+
+    unsubscribe = onSnapshot(q,
+      (snap) => {
+        // Sort client-side by createdAt descending
+        state.carts = snap.docs
+          .map(d => ({ id: d.id, ...d.data() }))
+          .sort((a, b) => {
+            const ta = a.createdAt?.toDate?.()?.getTime() || 0;
+            const tb = b.createdAt?.toDate?.()?.getTime() || 0;
+            return tb - ta;
+          });
+        renderCarts();
+        hideError();
+      },
+      (err) => {
+        console.error("Cart listener error:", err);
+        // If index error, fall back to simple getDocs without orderBy
+        if (err.code === "failed-precondition") {
+          loadCartsFallback();
+        } else {
+          showError("Could not load carts: " + err.message);
+        }
+      }
+    );
+  } catch (err) {
+    console.error(err);
+    loadCartsFallback();
+  }
+}
+
+// ── Fallback: simple getDocs without any ordering ──────────
+async function loadCartsFallback() {
+  try {
+    const q    = query(
+      collection(db, "users", userId, "carts"),
+      where("status", "==", "pending_approval")
+    );
+    const snap = await getDocs(q);
+    state.carts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderCarts();
+    hideError();
+  } catch (err) {
+    showError("Error loading carts: " + err.message);
+    renderCarts(); // show empty state
+  }
+}
+
+window.refreshCarts = () => {
+  document.getElementById("carts-container").innerHTML =
+    `<div class="loading-state"><div class="loading-spinner"></div><div class="loading-text">Refreshing…</div></div>`;
+  startCartListener();
+};
+
+// ── Render all pending carts ───────────────────────────────
+function renderCarts() {
+  const container = document.getElementById("carts-container");
+  const countText = document.getElementById("cart-count-text");
+
+  if (!state.carts.length) {
+    countText.textContent = "No pending carts right now";
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+            <path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/>
+          </svg>
+        </div>
+        <div class="empty-title">No pending carts</div>
+        <div class="empty-desc">The agent will automatically build a cart when items are predicted to run low. Approve a previous cart or wait for the next pipeline run.</div>
+        <div class="empty-badge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px"><polyline points="20 6 9 17 4 12"/></svg>
+          Inventory is being monitored
+        </div>
+      </div>`;
+    return;
+  }
+
+  countText.textContent = `${state.carts.length} cart${state.carts.length !== 1 ? "s" : ""} awaiting your approval`;
+  container.innerHTML = "";
+
+  state.carts.forEach((cart, ci) => {
+    const items   = cart.items || [];
+    const subtotal = items.reduce((s, i) => s + (i.unitPrice || 0) * (i.qty || 1), 0);
+    const saving   = cart.couponSaving || 0;
+    const total    = cart.total || (subtotal - saving);
+
+    // Platform dot color
+    const platformColors = {
+      Blinkit:"#059669", Zepto:"#7C3AED",
+      "Swiggy Instamart":"#EA580C", BigBasket:"#16A34A"
+    };
+    const dotColor = platformColors[cart.platform] || "#2563EB";
+
+    const itemsHTML = items.map((item, ii) => `
+      <div class="cart-row" id="row-${ci}-${ii}">
+        <div class="cart-emoji" style="background:${categoryBg(item.category)}">${categoryIcon(item.category)}</div>
+        <div class="cart-item-info">
+          <div class="cart-item-name">
+            ${item.name}
+            ${item.isSubstitute ? '<span class="sub-chip">Substitute</span>' : ""}
+          </div>
+          <div class="cart-item-brand">
+            ${item.brand || ""}
+            ${item.urgency === "critical" ? '<span style="font-size:10px;padding:1px 6px;border-radius:20px;background:var(--danger-dim);color:var(--danger);font-weight:600">Critical</span>' : ""}
+          </div>
+        </div>
+        <div class="qty-ctrl">
+          <button class="qty-btn" onclick="changeQty(${ci},${ii},-1)">−</button>
+          <span class="qty-val" id="qty-${ci}-${ii}">${item.qty || 1}</span>
+          <button class="qty-btn" onclick="changeQty(${ci},${ii},1)">+</button>
+        </div>
+        <div class="item-price" id="price-${ci}-${ii}">₹${(item.unitPrice || 0) * (item.qty || 1)}</div>
+        <button class="remove-btn" onclick="removeItem(${ci},${ii})" title="Remove item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>`).join("");
+
+    container.insertAdjacentHTML("beforeend", `
+      <div class="cart-card" id="cart-${ci}">
+
+        <!-- Header -->
+        <div class="cart-card-header">
+          <div class="cart-platform">
+            <svg viewBox="0 0 10 10" style="width:10px;height:10px;flex-shrink:0">
+              <circle cx="5" cy="5" r="5" fill="${dotColor}"/>
+            </svg>
+            <span class="cart-platform-name">${cart.platform || "Blinkit"}</span>
+            <span class="badge badge-warn" style="animation:badgePulse 2s ease-in-out infinite">
+              <span class="pulse-dot"></span>&nbsp;Awaiting approval
+            </span>
+          </div>
+          <span class="cart-id">Cart #${cart.id.slice(-5).toUpperCase()}</span>
+        </div>
+
+        <!-- Items -->
+        <div class="cart-card-body">${itemsHTML}</div>
+
+        <!-- Footer -->
+        <div class="cart-footer">
+          <div>
+            <div class="delivery-row">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="1" y="3" width="15" height="13"/>
+                <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/>
+                <circle cx="5.5" cy="18.5" r="2.5"/>
+                <circle cx="18.5" cy="18.5" r="2.5"/>
+              </svg>
+              Estimated delivery: 12–20 min &nbsp;·&nbsp; Free delivery
+            </div>
+            ${saving > 0 ? `<div class="savings-note">🎟 Coupon applied — you save ₹${saving}</div>` : ""}
+          </div>
+
+          <div style="text-align:right">
+            <div class="cart-total-label">Total to pay</div>
+            <div class="cart-total-val" id="total-${ci}">₹${total.toLocaleString("en-IN")}</div>
+          </div>
+
+          <div class="cart-actions">
+            <button class="btn-decline" onclick="declineCart(${ci})">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+              Decline
+            </button>
+            <button class="btn-approve" id="approve-btn-${ci}" onclick="approveCart(${ci})">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              Approve &amp; Order
+            </button>
+          </div>
+        </div>
+      </div>`);
+  });
+}
+
+// ── Qty controls ───────────────────────────────────────────
+window.changeQty = (ci, ii, delta) => {
+  const item = state.carts[ci].items[ii];
+  item.qty   = Math.max(1, (item.qty || 1) + delta);
+  document.getElementById(`qty-${ci}-${ii}`).textContent   = item.qty;
+  document.getElementById(`price-${ci}-${ii}`).textContent = `₹${(item.unitPrice || 0) * item.qty}`;
+  updateTotal(ci);
+};
+
+// ── Remove item from cart (local only — updates on approve) ─
+window.removeItem = (ci, ii) => {
+  state.carts[ci].items.splice(ii, 1);
+  if (state.carts[ci].items.length === 0) {
+    showToast("All items removed — cart declined", "success");
+    state.carts.splice(ci, 1);
+  }
+  renderCarts();
+};
+
+// ── Approve → call agents ──────────────────────────────────
+window.approveCart = async (ci) => {
+  const cart = state.carts[ci];
+  const btn  = document.getElementById(`approve-btn-${ci}`);
+
+  btn.disabled    = true;
+  btn.innerHTML   = `<div style="width:14px;height:14px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite"></div> Placing order…`;
+
+  try {
+    await ApprovalAgent.approve(userId, cart.id);
+    await ShoppingAgent.run(userId, cart.id);
+    showToast(`✅ Order placed on ${cart.platform || "Blinkit"}! Estimated delivery in 15–20 min.`, "success");
+    // The realtime listener will automatically remove this cart
+    // from state.carts because status changed from "pending_approval"
+  } catch (err) {
+    console.error("Approve error:", err);
+    showToast("Error placing order: " + err.message, "error");
+    btn.disabled  = false;
+    btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:14px;height:14px"><polyline points="20 6 9 17 4 12"/></svg> Approve & Order`;
+  }
+};
+
+// ── Decline cart ───────────────────────────────────────────
+window.declineCart = async (ci) => {
+  const cart = state.carts[ci];
+  try {
+    await ApprovalAgent.decline(userId, cart.id, "User declined");
+    showToast("Cart declined. Agent will rebuild on next run.", "success");
+    // realtime listener auto-removes it
+  } catch (err) {
+    showToast("Error declining cart: " + err.message, "error");
+  }
+};
+
+// ── Update total display ───────────────────────────────────
+function updateTotal(ci) {
+  const cart  = state.carts[ci];
+  const items = cart.items || [];
+  const total = items.reduce((s, i) => s + (i.unitPrice || 0) * (i.qty || 1), 0) - (cart.couponSaving || 0);
+  const el    = document.getElementById(`total-${ci}`);
+  if (el) el.textContent = `₹${total.toLocaleString("en-IN")}`;
+}
+
+// ── Error helpers ──────────────────────────────────────────
+function showError(msg) {
+  const el = document.getElementById("error-banner");
+  el.textContent = "⚠️ " + msg;
+  el.classList.add("visible");
+}
+function hideError() {
+  document.getElementById("error-banner").classList.remove("visible");
+}
+
+// Inject spin keyframe for approve button loader
+const s = document.createElement("style");
+s.textContent = "@keyframes badgePulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}";
+document.head.appendChild(s);
+</script>
+</body>
+</html>

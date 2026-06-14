@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HomeAgent — Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+  <style>
+    .pipeline-bar { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px 20px; }
+    .pipeline-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); margin-bottom: 12px; }
+    .pipeline-agents { display: flex; align-items: center; gap: 0; overflow-x: auto; padding-bottom: 4px; }
+    .agent-node { display: flex; flex-direction: column; align-items: center; gap: 5px; min-width: 78px; }
+    .agent-icon { width: 38px; height: 38px; border-radius: 11px; display: flex; align-items: center; justify-content: center; position: relative; }
+    .agent-icon svg { width: 17px; height: 17px; }
+    .agent-icon.done { background:rgba(5,150,105,0.12);color:#059669; }
+    .agent-icon.active { background:rgba(17,24,39,0.08);color:#111827; }
+    .agent-icon.idle { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
+    .status-dot { position: absolute; top: -2px; right: -2px; width: 9px; height: 9px; border-radius: 50%; border:2px solid var(--surface); }
+    .dot-done { background: var(--success); }
+    .dot-active { background: #22C55E; animation: pulse 1.2s infinite; }
+    .dot-idle { background: var(--subtle); }
+    .agent-name { font-size: 10px; color: var(--muted); text-align: center; }
+    .agent-arrow { color: var(--subtle); font-size: 18px; margin: 0 -3px; padding-bottom: 16px; flex-shrink: 0; }
+    .pipeline-status-text { margin-left: 16px; font-size: 11px; color: var(--muted); padding-bottom: 16px; align-self: flex-end; white-space: nowrap; }
+
+    .item-row { display: flex; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--border); }
+    .item-row:last-child { border-bottom: none; }
+    .item-icon { width: 32px; height: 32px; border-radius: 9px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .item-icon svg { width: 15px; height: 15px; }
+    .item-info { flex: 1; min-width: 0; }
+    .item-name { font-size: 12px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .item-meta { font-size: 11px; color: var(--muted); }
+
+    .cart-row { display: flex; align-items: center; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid var(--border); }
+    .cart-row:last-of-type { border-bottom: none; }
+    .cart-name { font-size: 12px; color: var(--text); }
+    .cart-brand { font-size: 11px; color: var(--muted); margin-top: 2px; display: flex; align-items: center; gap: 5px; }
+    .cart-price { font-size: 13px; font-weight: 600; color: var(--text); }
+    .sub-chip { font-size: 10px; padding: 1px 6px; border-radius: 20px; background: var(--warn-dim); color: var(--warn); }
+
+    .cart-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border-strong); }
+    .cart-total-label { font-size: 11px; color: var(--muted); }
+    .cart-total-val { font-size: 18px; font-weight: 700; color: var(--text); }
+    .cart-saved { font-size: 11px; color: var(--success); }
+    .cart-actions { display: flex; gap: 8px; }
+
+    .timeline-item { display: flex; gap: 12px; padding: 8px 0; }
+    .tl-col { display: flex; flex-direction: column; align-items: center; }
+    .tl-dot { width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0; display:flex;align-items:center;justify-content:center; box-shadow: var(--shadow-sm); transition: transform .2s cubic-bezier(0.34,1.56,0.64,1); }
+    .tl-dot svg { width: 12px; height: 12px; }
+    .timeline-item:hover .tl-dot { transform: scale(1.15); }
+    .tl-line { width: 1px; flex: 1; background: var(--border); margin: 3px 0; }
+    .tl-text { font-size: 12px; color: var(--text); line-height: 1.5; }
+    .tl-time { font-size: 11px; color: var(--muted); }
+
+    .savings-item { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border); }
+    .savings-item:last-child { border-bottom: none; }
+    .savings-bar-wrap { display: flex; align-items: center; gap: 8px; }
+    .savings-bar-bg { width: 88px; height: 4px; border-radius: 2px; background: var(--surface2); overflow: hidden; }
+    .savings-bar-fill { height: 100%; border-radius: 2px; }
+    .savings-val { font-size: 12px; font-weight: 600; color: var(--text); min-width: 40px; text-align: right; }
+    .savings-total { display: flex; align-items: baseline; justify-content: space-between; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border-strong); }
+
+    /* ── Loading spinner ── */
+    .loading-spinner-sm {
+      width: 28px; height: 28px; margin: 0 auto;
+      border: 3px solid var(--border);
+      border-top-color: #2563EB;
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Pending cart empty state ── */
+    .cart-empty {
+      text-align: center; padding: 28px 12px;
+      animation: fadeIn .4s ease both;
+    }
+    @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+    .cart-empty-icon {
+      width: 48px; height: 48px; border-radius: 14px;
+      background: var(--surface2); border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 12px; box-shadow: var(--shadow-sm);
+    }
+    .cart-empty-icon svg { width: 22px; height: 22px; color: var(--muted); }
+    .cart-empty-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+    .cart-empty-desc { font-size: 12px; color: var(--muted); line-height: 1.6; }
+
+    /* ── Approve button states ── */
+    .btn-approve-dash {
+      display: flex; align-items: center; gap: 7px;
+      padding: 9px 18px; border-radius: var(--radius);
+      background: #059669; color: #fff;
+      font-size: 12px; font-weight: 700;
+      border: none; cursor: pointer; font-family: var(--font);
+      box-shadow: 0 3px 10px rgba(5,150,105,.3);
+      transition: all .2s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    .btn-approve-dash:hover { background: #047857; transform: translateY(-2px) scale(1.03); box-shadow: 0 5px 16px rgba(5,150,105,.35); }
+    .btn-approve-dash:active { transform: scale(.97); }
+    .btn-approve-dash:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+    .btn-approve-dash svg { width: 13px; height: 13px; }
+    .mini-spinner {
+      width: 13px; height: 13px;
+      border: 2px solid rgba(255,255,255,.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+
+    /* ── Product grid (Quick Add) ── */
+    .product-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 12px;
+    }
+    .product-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+      display: flex; flex-direction: column; gap: 10px;
+      transition: all .25s cubic-bezier(0.34,1.56,0.64,1);
+      box-shadow: var(--shadow-sm);
+    }
+    .product-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-md);
+      border-color: var(--border-strong);
+    }
+    .product-icon {
+      width: 36px; height: 36px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: var(--shadow-sm);
+      transition: transform .25s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    .product-icon svg { width: 17px; height: 17px; }
+    .product-card:hover .product-icon { transform: scale(1.12) rotate(-4deg); }
+    .product-name { font-size: 12px; font-weight: 600; color: var(--text); line-height: 1.3; }
+    .product-brand { font-size: 11px; color: var(--muted); }
+    .product-footer {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-top: auto;
+    }
+    .product-price { font-size: 13px; font-weight: 700; color: var(--text); }
+    .product-add-btn {
+      display: flex; align-items: center; justify-content: center; gap: 4px;
+      width: 32px; height: 32px; border-radius: 9px;
+      background: #2563EB; color: #fff;
+      border: none; cursor: pointer; font-family: var(--font);
+      box-shadow: 0 2px 6px rgba(37,99,235,.3);
+      transition: all .2s cubic-bezier(0.34,1.56,0.64,1);
+      flex-shrink: 0;
+    }
+    .product-add-btn svg { width: 15px; height: 15px; }
+    .product-add-btn:hover { background: #1D4ED8; transform: scale(1.12) rotate(90deg); box-shadow: 0 4px 12px rgba(37,99,235,.4); }
+    .product-add-btn:active { transform: scale(.92); }
+    .product-add-btn.added {
+      background: #059669; box-shadow: 0 2px 6px rgba(5,150,105,.3);
+      animation: addedPop .4s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    @keyframes addedPop {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.3); }
+      100% { transform: scale(1); }
+    }
+  </style>
+</head>
+<body>
+
+<div class="app-shell">
+  <!-- Shell injected by JS -->
+  <main class="main-content">
+
+    <!-- Agent Pipeline -->
+    <div class="pipeline-bar">
+      <div class="pipeline-label">Agent pipeline — live status</div>
+      <div class="pipeline-agents">
+        <div class="agent-node">
+          <div class="agent-icon done">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+            <span class="status-dot dot-done"></span>
+          </div>
+          <div class="agent-name">Inventory</div>
+        </div>
+        <div class="agent-arrow">›</div>
+        <div class="agent-node">
+          <div class="agent-icon done">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            <span class="status-dot dot-done"></span>
+          </div>
+          <div class="agent-name">Consumption</div>
+        </div>
+        <div class="agent-arrow">›</div>
+        <div class="agent-node">
+          <div class="agent-icon done">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/></svg>
+            <span class="status-dot dot-done"></span>
+          </div>
+          <div class="agent-name">Context</div>
+        </div>
+        <div class="agent-arrow">›</div>
+        <div class="agent-node">
+          <div class="agent-icon active">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><circle cx="12" cy="12" r="10"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <span class="status-dot dot-active"></span>
+          </div>
+          <div class="agent-name">Prediction</div>
+        </div>
+        <div class="agent-arrow">›</div>
+        <div class="agent-node">
+          <div class="agent-icon idle">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
+            <span class="status-dot dot-idle"></span>
+          </div>
+          <div class="agent-name">Reorder</div>
+        </div>
+        <div class="agent-arrow">›</div>
+        <div class="agent-node">
+          <div class="agent-icon idle">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <span class="status-dot dot-idle"></span>
+          </div>
+          <div class="agent-name">Approval</div>
+        </div>
+        <div class="agent-arrow">›</div>
+        <div class="agent-node">
+          <div class="agent-icon idle">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg>
+            <span class="status-dot dot-idle"></span>
+          </div>
+          <div class="agent-name">Shopping</div>
+        </div>
+        <div class="pipeline-status-text">Prediction agent processing consumption data…</div>
+      </div>
+    </div>
+
+    <!-- Metrics -->
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-label">Items tracked</div>
+        <div class="metric-value">47</div>
+        <div class="metric-sub up">↑ 3 added this week</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Stockouts prevented</div>
+        <div class="metric-value">12</div>
+        <div class="metric-sub">Last 30 days</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Savings this month</div>
+        <div class="metric-value">₹648</div>
+        <div class="metric-sub up">↑ ₹94 vs last month</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Forecast accuracy</div>
+        <div class="metric-value">91%</div>
+        <div class="metric-sub up">↑ 4% vs last month</div>
+      </div>
+    </div>
+
+    <!-- Inventory + Cart -->
+    <div class="two-col">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Inventory status</span>
+          <span class="badge badge-danger">3 critical</span>
+        </div>
+        <div class="item-row">
+          <div class="item-icon" style="background:var(--warn-dim)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2"><path d="M3 3h18M3 8h18M3 13h12M3 18h9"/></svg>
+          </div>
+          <div class="item-info"><div class="item-name">Full-cream milk</div><div class="item-meta">~2 days left</div></div>
+          <div class="stock-bar-wrap"><div class="stock-bar"><div class="stock-fill stock-low" style="width:14%"></div></div><div class="stock-pct">14%</div></div>
+          <span class="badge badge-warn">Low</span>
+        </div>
+        <div class="item-row">
+          <div class="item-icon" style="background:var(--danger-dim)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2"><path d="M12 2a10 10 0 110 20 10 10 0 010-20z"/></svg>
+          </div>
+          <div class="item-info"><div class="item-name">Cooking oil</div><div class="item-meta">~1 day left</div></div>
+          <div class="stock-bar-wrap"><div class="stock-bar"><div class="stock-fill stock-critical" style="width:8%"></div></div><div class="stock-pct">8%</div></div>
+          <span class="badge badge-danger">Critical</span>
+        </div>
+        <div class="item-row">
+          <div class="item-icon" style="background:rgba(34,197,94,0.1)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#22C55E" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <div class="item-info"><div class="item-name">Eggs (12-pack)</div><div class="item-meta">~6 days left</div></div>
+          <div class="stock-bar-wrap"><div class="stock-bar"><div class="stock-fill stock-ok" style="width:58%"></div></div><div class="stock-pct">58%</div></div>
+          <span class="badge badge-success">OK</span>
+        </div>
+        <div class="item-row">
+          <div class="item-icon" style="background:var(--danger-dim)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+          </div>
+          <div class="item-info"><div class="item-name">Whole wheat bread</div><div class="item-meta">~1 day left</div></div>
+          <div class="stock-bar-wrap"><div class="stock-bar"><div class="stock-fill stock-critical" style="width:10%"></div></div><div class="stock-pct">10%</div></div>
+          <span class="badge badge-danger">Critical</span>
+        </div>
+        <div class="item-row">
+          <div class="item-icon" style="background:rgba(34,197,94,0.1)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#22C55E" stroke-width="2"><path d="M3 3h18v18H3z"/></svg>
+          </div>
+          <div class="item-info"><div class="item-name">Rice (5 kg)</div><div class="item-meta">~18 days left</div></div>
+          <div class="stock-bar-wrap"><div class="stock-bar"><div class="stock-fill stock-ok" style="width:76%"></div></div><div class="stock-pct">76%</div></div>
+          <span class="badge badge-success">OK</span>
+        </div>
+        <div style="margin-top:14px">
+          <a href="inventory.html" class="btn btn-ghost" style="width:100%;justify-content:center;font-size:12px">View all 47 items →</a>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Pending cart — ready for approval</span>
+          <span class="badge badge-info" id="cart-platform-badge" style="display:none">Blinkit</span>
+        </div>
+        <div id="pending-cart-body">
+          <div style="text-align:center;padding:24px 12px">
+            <div class="loading-spinner-sm"></div>
+            <div style="font-size:12px;color:var(--muted);margin-top:10px">Checking for pending carts…</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Add — Shop Products -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Quick add — shop products</span>
+        <span class="badge badge-muted" id="quick-add-hint">Adds to your pending cart</span>
+      </div>
+      <div class="product-grid" id="product-grid"></div>
+    </div>
+
+    <!-- Activity + Savings -->
+    <div class="two-col">
+      <div class="card">
+        <div class="card-header"><span class="card-title">Recent agent activity</span></div>
+        <div class="timeline-item">
+          <div class="tl-col"><div class="tl-dot" style="background:var(--info-dim)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--info)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div><div class="tl-line"></div></div>
+          <div><div class="tl-text">OCR processed 2 receipts from Gmail</div><div class="tl-time">9 min ago · Inventory Agent</div></div>
+        </div>
+        <div class="timeline-item">
+          <div class="tl-col"><div class="tl-dot" style="background:var(--warn-dim)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--warn)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><div class="tl-line"></div></div>
+          <div><div class="tl-text">Low-stock alert triggered for cooking oil</div><div class="tl-time">42 min ago · Prediction Agent</div></div>
+        </div>
+        <div class="timeline-item">
+          <div class="tl-col"><div class="tl-dot" style="background:var(--success-dim)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg></div><div class="tl-line"></div></div>
+          <div><div class="tl-text">Substitute found: Surf Excel (Ariel out of stock)</div><div class="tl-time">1 hr ago · Context Agent</div></div>
+        </div>
+        <div class="timeline-item">
+          <div class="tl-col"><div class="tl-dot" style="background:var(--info-dim)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--info)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><circle cx="12" cy="12" r="10"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><div class="tl-line"></div></div>
+          <div><div class="tl-text">Consumption model updated with weekend data</div><div class="tl-time">3 hr ago · Consumption Agent</div></div>
+        </div>
+        <div class="timeline-item">
+          <div class="tl-col"><div class="tl-dot" style="background:var(--success-dim)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div></div>
+          <div><div class="tl-text">Cart #14 delivered — inventory auto-updated</div><div class="tl-time">Yesterday · Shopping Agent</div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><span class="card-title">This month's savings</span></div>
+        <div class="savings-item">
+          <span style="font-size:12px;color:var(--muted)">Bulk pricing</span>
+          <div class="savings-bar-wrap">
+            <div class="savings-bar-bg"><div class="savings-bar-fill" style="width:72%;background:var(--info)"></div></div>
+            <span class="savings-val">₹264</span>
+          </div>
+        </div>
+        <div class="savings-item">
+          <span style="font-size:12px;color:var(--muted)">Coupon codes</span>
+          <div class="savings-bar-wrap">
+            <div class="savings-bar-bg"><div class="savings-bar-fill" style="width:55%;background:var(--success)"></div></div>
+            <span class="savings-val">₹198</span>
+          </div>
+        </div>
+        <div class="savings-item">
+          <span style="font-size:12px;color:var(--muted)">Price comparison</span>
+          <div class="savings-bar-wrap">
+            <div class="savings-bar-bg"><div class="savings-bar-fill" style="width:38%;background:var(--warn)"></div></div>
+            <span class="savings-val">₹114</span>
+          </div>
+        </div>
+        <div class="savings-item">
+          <span style="font-size:12px;color:var(--muted)">Smart substitutes</span>
+          <div class="savings-bar-wrap">
+            <div class="savings-bar-bg"><div class="savings-bar-fill" style="width:20%;background:var(--muted)"></div></div>
+            <span class="savings-val">₹72</span>
+          </div>
+        </div>
+        <div class="savings-total">
+          <span style="font-size:13px;color:var(--muted)">Total saved</span>
+          <span style="font-size:22px;font-weight:700;color:var(--success)">₹648</span>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script type="module">
+  import { initAuthGuard, signOutUser, auth } from "./js/auth.js";
+  import { renderShell } from "./js/shell.js";
+  import { runAgentPipeline, ApprovalAgent, ShoppingAgent } from "./js/agents/pipeline.js";
+  import { addProductToCart, PRODUCT_CATALOG } from "./js/agents/cartHelper.js";
+  import { categoryIcon, categoryBg } from "./js/agents/categoryIcons.js";
+  import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import { collection, getDocs, query, where, onSnapshot }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { db } from "./js/firebase-config.js";
+
+  import { initAllAnimations } from "./js/animations.js";
+  renderShell("dashboard", "Dashboard");
+  initAuthGuard(true);
+  initAllAnimations();
+  document.getElementById("signout-btn").addEventListener("click", signOutUser);
+
+  // Agent node IDs in pipeline bar
+  const agentNodeMap = {
+    "Inventory":   0, "Consumption": 1, "Context": 2,
+    "Prediction":  3, "Reorder":     4, "Approval": 5, "Shopping": 6
+  };
+
+  // Update pipeline node visual
+  function setAgentStatus(agentName, status) {
+    const nodes = document.querySelectorAll(".agent-icon");
+    const idx   = agentNodeMap[agentName];
+    if (idx === undefined || !nodes[idx]) return;
+    const dot   = nodes[idx].querySelector(".status-dot");
+    nodes[idx].className = "agent-icon " + (status === "active" ? "active" : status === "done" ? "done" : "idle");
+    if (dot) dot.className = "status-dot " + (status === "active" ? "dot-active" : status === "done" ? "dot-done" : "dot-idle");
+    const statusText = document.querySelector(".pipeline-status-text");
+    if (statusText && status === "active") statusText.textContent = agentName + " agent running…";
+    if (statusText && status === "done" && agentName === "Prediction") statusText.textContent = "Pipeline complete ✓";
+  }
+
+  // Listen to agent events and update UI
+  window.addEventListener("agent-event", e => {
+    const { agent, status, message } = e.detail;
+    setAgentStatus(agent, status);
+    if (status === "done" && agent !== "QuickAdd") showToast(message, "success");
+    if (status === "error") showToast("Agent error: " + message, "error");
+  });
+
+  // ── Load real inventory from Firestore ──────────────────
+  async function loadInventory(userId) {
+    const snap  = await getDocs(collection(db, "users", userId, "inventory"));
+    const items = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => a.stockPct - b.stockPct)
+      .slice(0, 5);
+    const tbody = document.querySelector(".card .item-row")?.parentElement;
+    if (!tbody || !items.length) return;
+
+    tbody.querySelectorAll(".item-row").forEach(r => r.remove());
+
+    const colors       = { critical: "var(--danger-dim)", low: "var(--warn-dim)", ok: "rgba(34,197,94,0.1)" };
+    const strokeColors = { critical: "#EF4444", low: "#F59E0B", ok: "#22C55E" };
+    const badgeClass   = { critical: "badge-danger", low: "badge-warn", ok: "badge-success" };
+
+    items.forEach(item => {
+      const row = document.createElement("div");
+      row.className = "item-row";
+      row.innerHTML = `
+        <div class="item-icon" style="background:${colors[item.status]||colors.ok}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="${strokeColors[item.status]||strokeColors.ok}" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+        </div>
+        <div class="item-info">
+          <div class="item-name">${item.name}</div>
+          <div class="item-meta">~${item.daysLeft ?? "?"} days left</div>
+        </div>
+        <div class="stock-bar-wrap">
+          <div class="stock-bar"><div class="stock-fill stock-${item.status}" style="width:${item.stockPct}%"></div></div>
+          <div class="stock-pct">${item.stockPct}%</div>
+        </div>
+        <span class="badge ${badgeClass[item.status]}">${item.status.charAt(0).toUpperCase()+item.status.slice(1)}</span>`;
+      tbody.appendChild(row);
+    });
+  }
+
+  // ══════════════════════════════════════════════════════════
+  //  PENDING CART — realtime listener + working approve button
+  // ══════════════════════════════════════════════════════════
+  let cartUnsubscribe = null;
+  let currentUserId   = null;
+
+  const platformColors = {
+    Blinkit:"#059669", Zepto:"#7C3AED",
+    "Swiggy Instamart":"#EA580C", BigBasket:"#16A34A"
+  };
+
+  function startPendingCartListener(userId) {
+    if (cartUnsubscribe) cartUnsubscribe();
+
+    const q = query(
+      collection(db, "users", userId, "carts"),
+      where("status", "==", "pending_approval")
+    );
+
+    cartUnsubscribe = onSnapshot(q,
+      (snap) => {
+        // Take the most recently created pending cart
+        const carts = snap.docs
+          .map(d => ({ id: d.id, ...d.data() }))
+          .sort((a, b) => {
+            const ta = a.createdAt?.toDate?.()?.getTime() || 0;
+            const tb = b.createdAt?.toDate?.()?.getTime() || 0;
+            return tb - ta;
+          });
+        renderPendingCart(carts[0] || null);
+      },
+      (err) => {
+        console.error("Pending cart listener error:", err);
+        renderPendingCart(null);
+      }
+    );
+  }
+
+  function renderPendingCart(cart) {
+    const body  = document.getElementById("pending-cart-body");
+    const badge = document.getElementById("cart-platform-badge");
+
+    if (!cart || !cart.items || cart.items.length === 0) {
+      badge.style.display = "none";
+      body.innerHTML = `
+        <div class="cart-empty">
+          <div class="cart-empty-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+              <path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/>
+            </svg>
+          </div>
+          <div class="cart-empty-title">No pending cart</div>
+          <div class="cart-empty-desc">Use Quick Add below, or wait for the agent to build one automatically.</div>
+        </div>`;
+      return;
+    }
+
+    badge.style.display = "inline-flex";
+    badge.textContent   = cart.platform || "Blinkit";
+    badge.style.background = (platformColors[cart.platform] ? platformColors[cart.platform] + "1A" : "var(--info-dim)");
+    badge.style.color      = platformColors[cart.platform] || "var(--info)";
+
+    const items   = cart.items;
+    const saving  = cart.couponSaving || 0;
+    const total   = cart.total ?? items.reduce((s,i)=>s+(i.unitPrice||0)*(i.qty||1),0) - saving;
+
+    const itemsHTML = items.slice(0, 4).map(item => `
+      <div class="cart-row">
+        <div style="display:flex;align-items:center;gap:10px;min-width:0">
+          <div style="width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:${categoryBg(item.category)}">
+            <div style="width:13px;height:13px">${categoryIcon(item.category)}</div>
+          </div>
+          <div style="min-width:0">
+            <div class="cart-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${item.name} ${item.isSubstitute ? '<span class="sub-chip">Substitute</span>' : ''}</div>
+            <div class="cart-brand">${item.brand || ""} · Qty: ${item.qty || 1}</div>
+          </div>
+        </div>
+        <div class="cart-price">₹${(item.unitPrice||0) * (item.qty||1)}</div>
+      </div>`).join("");
+
+    const moreCount = items.length > 4 ? items.length - 4 : 0;
+
+    body.innerHTML = `
+      ${itemsHTML}
+      ${moreCount > 0 ? `<div style="font-size:11px;color:var(--muted);padding:8px 0;text-align:center">+${moreCount} more item${moreCount!==1?"s":""}</div>` : ""}
+      <div class="cart-footer">
+        <div>
+          <div class="cart-total-label">Total${saving > 0 ? ` <span class="cart-saved">· saved ₹${saving}</span>` : ""}</div>
+          <div class="cart-total-val">₹${total.toLocaleString("en-IN")}</div>
+        </div>
+        <div class="cart-actions">
+          <button class="btn btn-ghost" style="font-size:12px" onclick="window.location.href='orders.html'">Edit</button>
+          <button class="btn-approve-dash" id="approve-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            Approve
+          </button>
+        </div>
+      </div>`;
+
+    // Wire approve button — actually places the order
+    const approveBtn = document.getElementById("approve-btn");
+    approveBtn.addEventListener("click", async () => {
+      approveBtn.disabled  = true;
+      approveBtn.innerHTML = `<div class="mini-spinner"></div> Approving…`;
+
+      try {
+        await ApprovalAgent.approve(currentUserId, cart.id);
+        approveBtn.innerHTML = `<div class="mini-spinner"></div> Placing order…`;
+        await ShoppingAgent.run(currentUserId, cart.id);
+
+        showToast(`✅ Order placed on ${cart.platform || "Blinkit"} — est. delivery 15-20 min`, "success");
+
+        approveBtn.innerHTML = `
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          Approved ✓`;
+        approveBtn.style.background = "#16A34A";
+        // The onSnapshot listener will refresh the card automatically
+        // (cart.status changes from pending_approval -> ordered)
+
+        loadMetrics(currentUserId); // refresh stats after order
+      } catch (err) {
+        console.error("Approve error:", err);
+        showToast("Error approving cart: " + err.message, "error");
+        approveBtn.disabled  = false;
+        approveBtn.innerHTML = `
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          Approve`;
+      }
+    });
+  }
+
+  // ══════════════════════════════════════════════════════════
+  //  QUICK ADD — product grid
+  // ══════════════════════════════════════════════════════════
+  function renderProductGrid() {
+    const grid = document.getElementById("product-grid");
+    grid.innerHTML = PRODUCT_CATALOG.map((p, i) => `
+      <div class="product-card">
+        <div class="product-icon" style="background:${categoryBg(p.category)}">${categoryIcon(p.category)}</div>
+        <div>
+          <div class="product-name">${p.name}</div>
+          <div class="product-brand">${p.brand}</div>
+        </div>
+        <div class="product-footer">
+          <span class="product-price">₹${p.unitPrice}</span>
+          <button class="product-add-btn" id="add-btn-${i}" title="Add to cart">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+        </div>
+      </div>`).join("");
+
+    PRODUCT_CATALOG.forEach((p, i) => {
+      const btn = document.getElementById(`add-btn-${i}`);
+      btn.addEventListener("click", async () => {
+        btn.disabled = true;
+        try {
+          await addProductToCart(currentUserId, p, 1);
+
+          // Visual feedback
+          btn.classList.add("added");
+          btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`;
+          showToast(`${p.name} added to cart ✓`, "success");
+
+          setTimeout(() => {
+            btn.classList.remove("added");
+            btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`;
+            btn.disabled = false;
+          }, 1100);
+        } catch (err) {
+          console.error(err);
+          showToast("Could not add item: " + err.message, "error");
+          btn.disabled = false;
+        }
+      });
+    });
+  }
+
+  // ── Load metrics ──────────────────────────────────────────
+  async function loadMetrics(userId) {
+    const [invSnap, ordSnap] = await Promise.all([
+      getDocs(collection(db, "users", userId, "inventory")),
+      getDocs(collection(db, "users", userId, "orders"))
+    ]);
+    const tracked   = invSnap.size;
+    const orders    = ordSnap.docs.map(d => d.data());
+    const savings   = orders.reduce((s, o) => s + (o.couponSaving || 0), 0);
+    const prevented = orders.filter(o => o.status === "delivered").length;
+
+    const vals = document.querySelectorAll(".metric-value");
+    if (vals[0]) vals[0].textContent = tracked;
+    if (vals[2]) vals[2].textContent = "₹" + savings;
+    if (vals[1]) vals[1].textContent = prevented;
+  }
+
+  // ── Main: run on login ─────────────────────────────────────
+  onAuthStateChanged(auth, async user => {
+    if (!user) return;
+    currentUserId = user.uid;
+
+    renderProductGrid();
+    startPendingCartListener(user.uid);
+
+    await Promise.all([
+      loadInventory(user.uid),
+      loadMetrics(user.uid)
+    ]);
+
+    await runAgentPipeline(user.uid);
+
+    setInterval(() => runAgentPipeline(user.uid), 6 * 3600000);
+  });
+</script>
+
+</body>
+</html>

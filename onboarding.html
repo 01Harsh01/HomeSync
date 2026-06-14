@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>HomeAgent — Set up your household</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="css/onboarding.css"/>
+</head>
+<body>
+<div class="onboard-page">
+
+  <!-- Logo -->
+  <div class="onboard-logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+      </svg>
+    </div>
+    <span class="logo-text">HomeAgent</span>
+  </div>
+
+  <!-- Progress -->
+  <div class="progress-wrap">
+    <div class="progress-steps" id="progress-steps"></div>
+    <div class="progress-bar-track"><div class="progress-bar-fill" id="progress-fill" style="width:20%"></div></div>
+  </div>
+
+  <!-- Steps card -->
+  <div class="onboard-card">
+
+    <!-- STEP 1: Household basics -->
+    <div class="card-step active" id="step-1">
+      <div class="step-eyebrow">Step 1 of 5</div>
+      <div class="step-title">Tell us about your household</div>
+      <div class="step-desc">This helps the agent accurately predict how fast your family consumes each item.</div>
+
+      <div class="field">
+        <label class="field-label">Household name</label>
+        <input class="field-input" id="hh-name" type="text" placeholder="e.g. Sharma family" maxlength="40"/>
+      </div>
+
+      <div class="field">
+        <label class="field-label">City</label>
+        <select class="field-input" id="hh-city">
+          <option value="">Select your city</option>
+          <option>Mumbai</option><option>Delhi</option><option>Bengaluru</option>
+          <option>Hyderabad</option><option>Chennai</option><option>Kolkata</option>
+          <option>Pune</option><option>Ahmedabad</option><option>Jaipur</option>
+          <option>Patna</option><option>Lucknow</option><option>Surat</option>
+          <option>Other</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label class="field-label">Home type</label>
+        <select class="field-input" id="hh-type">
+          <option value="">Select home type</option>
+          <option value="apartment">Apartment / Flat</option>
+          <option value="house">Independent house / Villa</option>
+          <option value="pg">PG / Hostel</option>
+          <option value="shared">Shared accommodation</option>
+        </select>
+      </div>
+
+      <div class="nav-row">
+        <span></span>
+        <button class="btn btn-primary" onclick="nextStep(1)">
+          Continue
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:14px;height:14px"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- STEP 2: Family members -->
+    <div class="card-step" id="step-2">
+      <div class="step-eyebrow">Step 2 of 5</div>
+      <div class="step-title">Who lives here?</div>
+      <div class="step-desc">The agent uses family composition to scale consumption predictions — children eat differently than adults.</div>
+
+      <div class="field">
+        <label class="field-label">Adults (18+)</label>
+        <div class="counter-group">
+          <div class="counter-row">
+            <div class="counter-info">
+              <div class="counter-name">Adults</div>
+              <div class="counter-desc">Full consumption rate</div>
+            </div>
+            <div class="counter-ctrl">
+              <div class="counter-btn" onclick="changeCount('adults',-1)">−</div>
+              <div class="counter-val" id="val-adults">2</div>
+              <div class="counter-btn" onclick="changeCount('adults',1)">+</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="field-label">Children by age group</label>
+        <div class="age-groups" id="age-groups">
+          <!-- rendered by JS -->
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="field-label">Elderly members (60+)</label>
+        <div class="counter-group">
+          <div class="counter-row">
+            <div class="counter-info">
+              <div class="counter-name">Elderly</div>
+              <div class="counter-desc">~70% of adult consumption rate</div>
+            </div>
+            <div class="counter-ctrl">
+              <div class="counter-btn" onclick="changeCount('elderly',-1)">−</div>
+              <div class="counter-val" id="val-elderly">0</div>
+              <div class="counter-btn" onclick="changeCount('elderly',1)">+</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="field-label" style="display:flex;align-items:center;justify-content:space-between">
+          <span>Frequent guests / visitors</span>
+        </label>
+        <select class="field-input" id="hh-guests">
+          <option value="0">Never / rarely</option>
+          <option value="1">Occasionally (few times/month)</option>
+          <option value="2">Often (weekly)</option>
+          <option value="3">Very often (multiple times/week)</option>
+        </select>
+        <div style="font-size:11px;color:var(--muted);margin-top:5px">Agent will add a buffer for guest days</div>
+      </div>
+
+      <div class="nav-row">
+        <button class="btn btn-ghost" onclick="prevStep(2)">← Back</button>
+        <button class="btn btn-primary" onclick="nextStep(2)">
+          Continue
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:14px;height:14px"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- STEP 3: Diet & lifestyle -->
+    <div class="card-step" id="step-3">
+      <div class="step-eyebrow">Step 3 of 5</div>
+      <div class="step-title">Diet & lifestyle</div>
+      <div class="step-desc">Helps the agent predict which categories you consume more of.</div>
+
+      <div class="field">
+        <label class="field-label">Primary diet</label>
+        <select class="field-input" id="diet-type">
+          <option value="vegetarian">Vegetarian</option>
+          <option value="nonveg">Non-vegetarian</option>
+          <option value="vegan">Vegan</option>
+          <option value="eggetarian">Eggetarian</option>
+          <option value="mixed">Mixed (varies)</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label class="field-label">How often do you cook at home?</label>
+        <select class="field-input" id="cook-freq">
+          <option value="always">Almost always (5–7 days/week)</option>
+          <option value="often">Often (3–4 days/week)</option>
+          <option value="sometimes">Sometimes (1–2 days/week)</option>
+          <option value="rarely">Rarely — mostly order in</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label class="field-label">Special dietary needs</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px" id="diet-needs">
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);cursor:pointer;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius)">
+            <input type="checkbox" value="diabetes" style="accent-color:var(--accent)"/> Diabetes-friendly
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);cursor:pointer;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius)">
+            <input type="checkbox" value="lowsodium" style="accent-color:var(--accent)"/> Low sodium
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);cursor:pointer;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius)">
+            <input type="checkbox" value="glutenfree" style="accent-color:var(--accent)"/> Gluten-free
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);cursor:pointer;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius)">
+            <input type="checkbox" value="lactosefree" style="accent-color:var(--accent)"/> Lactose-free
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);cursor:pointer;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius)">
+            <input type="checkbox" value="highprotein" style="accent-color:var(--accent)"/> High-protein
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);cursor:pointer;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius)">
+            <input type="checkbox" value="organic" style="accent-color:var(--accent)"/> Prefer organic
+          </label>
+        </div>
+      </div>
+
+      <div class="nav-row">
+        <button class="btn btn-ghost" onclick="prevStep(3)">← Back</button>
+        <button class="btn btn-primary" onclick="nextStep(3)">
+          Continue
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:14px;height:14px"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- STEP 4: Platform & budget -->
+    <div class="card-step" id="step-4">
+      <div class="step-eyebrow">Step 4 of 5</div>
+      <div class="step-title">Ordering preferences</div>
+      <div class="step-desc">The agent will use your preferred platform and stay within your budget.</div>
+
+      <div class="field">
+        <label class="field-label">Preferred platform</label>
+        <div class="platform-grid" id="platform-grid">
+          <div class="platform-chip selected" data-val="Blinkit" onclick="selectPlatform(this)">
+            <div class="platform-dot" style="background:#22C55E"></div>
+            <div><div class="platform-name">Blinkit</div><div class="platform-eta">10–20 min delivery</div></div>
+          </div>
+          <div class="platform-chip" data-val="Zepto" onclick="selectPlatform(this)">
+            <div class="platform-dot" style="background:#A855F7"></div>
+            <div><div class="platform-name">Zepto</div><div class="platform-eta">10 min delivery</div></div>
+          </div>
+          <div class="platform-chip" data-val="Swiggy Instamart" onclick="selectPlatform(this)">
+            <div class="platform-dot" style="background:#FF6B00"></div>
+            <div><div class="platform-name">Swiggy Instamart</div><div class="platform-eta">15–30 min delivery</div></div>
+          </div>
+          <div class="platform-chip" data-val="BigBasket" onclick="selectPlatform(this)">
+            <div class="platform-dot" style="background:#22C55E"></div>
+            <div><div class="platform-name">BigBasket</div><div class="platform-eta">Same day / next day</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="field" style="margin-top:20px">
+        <label class="field-label">Max spend per order</label>
+        <div class="budget-display" id="budget-display">₹800</div>
+        <div class="budget-sub">Agent won't place orders above this amount</div>
+        <input type="range" id="budget-slider" min="200" max="3000" step="100" value="800"
+          oninput="document.getElementById('budget-display').textContent='₹'+this.value"/>
+      </div>
+
+      <div class="field">
+        <label class="field-label">Monthly budget cap</label>
+        <div class="budget-display" id="monthly-display">₹3,000</div>
+        <div class="budget-sub">Hard limit on autonomous spend per month</div>
+        <input type="range" id="monthly-slider" min="500" max="15000" step="500" value="3000"
+          oninput="document.getElementById('monthly-display').textContent='₹'+Number(this.value).toLocaleString('en-IN')"/>
+      </div>
+
+      <div class="nav-row">
+        <button class="btn btn-ghost" onclick="prevStep(4)">← Back</button>
+        <button class="btn btn-primary" onclick="nextStep(4)">
+          Continue
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:14px;height:14px"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- STEP 5: Autonomy level + summary -->
+    <div class="card-step" id="step-5">
+      <div class="step-eyebrow">Step 5 of 5</div>
+      <div class="step-title">How much should the agent do?</div>
+      <div class="step-desc">You can change this anytime in Settings.</div>
+
+      <div class="autonomy-grid">
+        <div class="autonomy-card selected" data-val="1" onclick="selectAutonomy(this)">
+          <div class="autonomy-header">
+            <div class="autonomy-title">Phase 1 — Alerts only</div>
+            <span class="autonomy-badge">Recommended to start</span>
+          </div>
+          <div class="autonomy-desc">Agent monitors stock and sends low-stock alerts. You order manually. Full control.</div>
+        </div>
+        <div class="autonomy-card" data-val="2" onclick="selectAutonomy(this)">
+          <div class="autonomy-header">
+            <div class="autonomy-title">Phase 2 — Cart builder</div>
+            <span class="autonomy-badge warn">One click to approve</span>
+          </div>
+          <div class="autonomy-desc">Agent builds an optimized cart automatically. You review and approve with one tap before payment.</div>
+        </div>
+        <div class="autonomy-card" data-val="3" onclick="selectAutonomy(this)">
+          <div class="autonomy-header">
+            <div class="autonomy-title">Phase 3 — Full auto</div>
+            <span class="autonomy-badge warn">Orders without asking</span>
+          </div>
+          <div class="autonomy-desc">Agent orders autonomously within your budget caps. Notifies you after ordering.</div>
+        </div>
+      </div>
+
+      <div style="margin-top:24px;padding:16px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius)">
+        <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:0.05em">Your profile summary</div>
+        <div class="summary-grid" id="summary-grid"></div>
+      </div>
+
+      <button class="btn btn-primary btn-lg" id="finish-btn" onclick="finishOnboarding()">
+        Start HomeAgent →
+      </button>
+
+      <div class="nav-row" style="margin-top:12px">
+        <button class="btn btn-ghost" onclick="prevStep(5)" style="width:100%;justify-content:center">← Back</button>
+      </div>
+    </div>
+
+    <!-- SAVING state -->
+    <div class="card-step" id="step-saving">
+      <div class="saving-wrap">
+        <div class="spinner"></div>
+        <div class="saving-text" id="saving-text">Setting up your household profile…</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script type="module">
+import { auth, db } from "./js/firebase-config.js";
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { doc, setDoc, getDoc, serverTimestamp, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { seedInventoryIfEmpty, computeConsumptionMultiplier } from "./js/agents/pipeline.js";
+
+// ── Auth guard ────────────────────────────────────────────
+let currentUser = null;
+onAuthStateChanged(auth, async user => {
+  if (!user) { window.location.href = "index.html"; return; }
+  currentUser = user;
+
+  // If already onboarded, skip straight to dashboard
+  const snap = await getDoc(doc(db, "users", user.uid));
+  if (snap.exists() && snap.data().onboardingComplete) {
+    window.location.href = "dashboard.html";
+  }
+});
+
+// ── State ─────────────────────────────────────────────────
+const state = {
+  step: 1,
+  totalSteps: 5,
+  hhName: "", city: "", hhType: "",
+  adults: 2, elderly: 0,
+  children: { "0-2": 0, "3-5": 0, "6-12": 0, "13-17": 0 },
+  guests: 0,
+  diet: "vegetarian", cookFreq: "always", dietNeeds: [],
+  platform: "Blinkit", budgetPerOrder: 800, budgetPerMonth: 3000,
+  autonomyLevel: 1
+};
+
+// ── Age groups setup ──────────────────────────────────────
+const ageGroups = [
+  { key: "0-2",   label: "Infants",    range: "0–2 yrs",   rate: "20% of adult" },
+  { key: "3-5",   label: "Toddlers",   range: "3–5 yrs",   rate: "35% of adult" },
+  { key: "6-12",  label: "Children",   range: "6–12 yrs",  rate: "55% of adult" },
+  { key: "13-17", label: "Teenagers",  range: "13–17 yrs", rate: "85% of adult" },
+];
+
+function renderAgeGroups() {
+  document.getElementById("age-groups").innerHTML = ageGroups.map(g => `
+    <div class="age-chip" id="chip-${g.key}">
+      <div class="age-chip-title">${g.label}</div>
+      <div class="age-chip-range">${g.range} · ${g.rate}</div>
+      <div class="age-chip-count">
+        <div class="counter-btn" onclick="changeChildCount('${g.key}',-1);event.stopPropagation()">−</div>
+        <div class="counter-val" id="child-${g.key}">0</div>
+        <div class="counter-btn" onclick="changeChildCount('${g.key}',1);event.stopPropagation()">+</div>
+      </div>
+    </div>`).join("");
+}
+
+window.changeChildCount = function(key, delta) {
+  state.children[key] = Math.max(0, state.children[key] + delta);
+  document.getElementById("child-"+key).textContent = state.children[key];
+  if (state.children[key] > 0) document.getElementById("chip-"+key).classList.add("selected");
+  else document.getElementById("chip-"+key).classList.remove("selected");
+};
+
+// ── Progress bar ──────────────────────────────────────────
+const stepLabels = ["Household","Family","Diet","Ordering","Autonomy"];
+function renderProgress() {
+  const wrap = document.getElementById("progress-steps");
+  wrap.innerHTML = stepLabels.map((label, i) => {
+    const n = i + 1;
+    const cls = n < state.step ? "done" : n === state.step ? "active" : "";
+    const connCls = n < state.step ? "done" : "";
+    return `
+      <div class="progress-step">
+        <div class="step-dot ${cls}">${n < state.step ? "" : n}</div>
+        <div class="step-label ${cls === "active" ? "active" : ""}">${label}</div>
+      </div>
+      ${i < stepLabels.length - 1 ? `<div class="step-connector ${connCls}"></div>` : ""}`;
+  }).join("");
+  document.getElementById("progress-fill").style.width = (state.step / state.totalSteps * 100) + "%";
+}
+
+// ── Counter ───────────────────────────────────────────────
+window.changeCount = function(key, delta) {
+  state[key] = Math.max(0, state[key] + delta);
+  if (key === "adults") state[key] = Math.max(1, state[key]);
+  document.getElementById("val-"+key).textContent = state[key];
+};
+
+// ── Platform selection ────────────────────────────────────
+window.selectPlatform = function(el) {
+  document.querySelectorAll(".platform-chip").forEach(c => c.classList.remove("selected"));
+  el.classList.add("selected");
+  state.platform = el.dataset.val;
+};
+
+// ── Autonomy selection ────────────────────────────────────
+window.selectAutonomy = function(el) {
+  document.querySelectorAll(".autonomy-card").forEach(c => c.classList.remove("selected"));
+  el.classList.add("selected");
+  state.autonomyLevel = parseInt(el.dataset.val);
+};
+
+// ── Navigation ────────────────────────────────────────────
+window.nextStep = function(from) {
+  // Collect values before moving
+  if (from === 1) {
+    state.hhName  = document.getElementById("hh-name").value.trim() || "My Household";
+    state.city    = document.getElementById("hh-city").value;
+    state.hhType  = document.getElementById("hh-type").value;
+  }
+  if (from === 2) {
+    state.guests = parseInt(document.getElementById("hh-guests").value);
+  }
+  if (from === 3) {
+    state.diet      = document.getElementById("diet-type").value;
+    state.cookFreq  = document.getElementById("cook-freq").value;
+    state.dietNeeds = [...document.querySelectorAll("#diet-needs input:checked")].map(i => i.value);
+  }
+  if (from === 4) {
+    state.platform       = document.querySelector(".platform-chip.selected")?.dataset.val || "Blinkit";
+    state.budgetPerOrder = parseInt(document.getElementById("budget-slider").value);
+    state.budgetPerMonth = parseInt(document.getElementById("monthly-slider").value);
+  }
+
+  document.getElementById("step-"+from).classList.remove("active");
+  state.step = from + 1;
+  document.getElementById("step-"+state.step).classList.add("active");
+  renderProgress();
+
+  if (state.step === 5) renderSummary();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+};
+
+window.prevStep = function(from) {
+  document.getElementById("step-"+from).classList.remove("active");
+  state.step = from - 1;
+  document.getElementById("step-"+state.step).classList.add("active");
+  renderProgress();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+};
+
+// ── Summary ───────────────────────────────────────────────
+function renderSummary() {
+  const totalChildren = Object.values(state.children).reduce((s,v) => s+v, 0);
+  const totalMembers  = state.adults + state.elderly + totalChildren;
+  document.getElementById("summary-grid").innerHTML = `
+    <div class="summary-item"><div class="summary-label">Household</div><div class="summary-val">${state.hhName}</div></div>
+    <div class="summary-item"><div class="summary-label">City</div><div class="summary-val">${state.city || "Not set"}</div></div>
+    <div class="summary-item"><div class="summary-label">Total members</div><div class="summary-val">${totalMembers} people</div></div>
+    <div class="summary-item"><div class="summary-label">Diet</div><div class="summary-val">${state.diet}</div></div>
+    <div class="summary-item"><div class="summary-label">Platform</div><div class="summary-val">${state.platform}</div></div>
+    <div class="summary-item"><div class="summary-label">Budget/order</div><div class="summary-val">₹${state.budgetPerOrder}</div></div>
+    <div class="summary-item"><div class="summary-label">Autonomy</div><div class="summary-val">Phase ${state.autonomyLevel}</div></div>
+    <div class="summary-item"><div class="summary-label">Monthly cap</div><div class="summary-val">₹${state.budgetPerMonth.toLocaleString("en-IN")}</div></div>`;
+}
+
+// ── Finish & save ─────────────────────────────────────────
+window.finishOnboarding = async function() {
+  if (!currentUser) return;
+
+  document.getElementById("step-5").classList.remove("active");
+  document.getElementById("step-saving").classList.add("active");
+
+  const savingEl  = document.getElementById("saving-text");
+  const totalChildren = Object.values(state.children).reduce((s,v)=>s+v,0);
+
+  // Compute consumption multiplier from family profile
+  const multiplier = computeConsumptionMultiplier({
+    adults:   state.adults,
+    elderly:  state.elderly,
+    children: state.children,
+    guests:   state.guests,
+    cookFreq: state.cookFreq
+  });
+
+  try {
+    savingEl.textContent = "Saving your household profile…";
+    await setDoc(doc(db, "users", currentUser.uid), {
+      uid:              currentUser.uid,
+      name:             currentUser.displayName,
+      email:            currentUser.email,
+      photoURL:         currentUser.photoURL,
+      onboardingComplete: true,
+      onboardedAt:      serverTimestamp(),
+
+      // Household
+      hhName:   state.hhName,
+      city:     state.city,
+      hhType:   state.hhType,
+
+      // Family
+      family: {
+        adults:          state.adults,
+        elderly:         state.elderly,
+        children:        state.children,
+        totalChildren,
+        totalMembers:    state.adults + state.elderly + totalChildren,
+        guests:          state.guests,
+        consumptionMultiplier: multiplier
+      },
+
+      // Diet
+      diet: {
+        type:     state.diet,
+        cookFreq: state.cookFreq,
+        needs:    state.dietNeeds
+      },
+
+      // Preferences
+      preferredPlatform:  state.platform,
+      budgetPerOrder:     state.budgetPerOrder,
+      budgetPerMonth:     state.budgetPerMonth,
+      autonomyLevel:      state.autonomyLevel,
+      plan:               "free"
+    }, { merge: true });
+
+    savingEl.textContent = "Creating your personalized inventory…";
+    await seedInventoryIfEmpty(currentUser.uid, {
+      diet:       state.diet,
+      multiplier,
+      dietNeeds:  state.dietNeeds
+    });
+
+    savingEl.textContent = "All done! Launching HomeAgent…";
+    await new Promise(r => setTimeout(r, 900));
+    window.location.href = "dashboard.html";
+
+  } catch (err) {
+    console.error(err);
+    savingEl.textContent = "Error: " + err.message + " — please try again.";
+    document.getElementById("step-saving").classList.remove("active");
+    document.getElementById("step-5").classList.add("active");
+  }
+};
+
+// ── Init ──────────────────────────────────────────────────
+renderAgeGroups();
+renderProgress();
+</script>
+</body>
+</html>

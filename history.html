@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>HomeAgent — Order History</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="css/styles.css"/>
+  <style>
+    .history-table{width:100%;border-collapse:collapse}
+    .history-table th{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:10px 16px;text-align:left;border-bottom:1px solid var(--border)}
+    .history-table td{padding:13px 16px;font-size:13px;color:var(--text);border-bottom:1px solid var(--border);vertical-align:middle}
+    .history-table tr:last-child td{border-bottom:none}
+    .history-table tr:hover td{background:var(--surface2)}
+    .platform-tag{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:500}
+    .platform-dot{width:7px;height:7px;border-radius:50%}
+    .items-preview{font-size:12px;color:var(--muted);max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .expand-btn{padding:5px 12px;border-radius:var(--radius);font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-family:var(--font);transition:all .2s cubic-bezier(0.34,1.56,0.64,1);box-shadow:var(--shadow-sm)}
+    .expand-btn:hover{background:#2563EB;color:#fff;border-color:#2563EB;transform:translateY(-1px) scale(1.05);box-shadow:0 4px 10px rgba(37,99,235,.25)}
+    .month-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);padding:20px 0 8px}
+    .loading-row{text-align:center;padding:48px;color:var(--muted);font-size:13px}
+  </style>
+</head>
+<body>
+<div class="app-shell">
+  <main class="main-content">
+    <div class="metrics-grid" style="grid-template-columns:repeat(3,1fr)" id="metrics-row">
+      <div class="metric-card"><div class="metric-label">Total orders</div><div class="metric-value" id="m-orders">—</div><div class="metric-sub">Since setup</div></div>
+      <div class="metric-card"><div class="metric-label">Total spent</div><div class="metric-value" id="m-spent">—</div><div class="metric-sub up" id="m-savings-sub">₹0 saved via agent</div></div>
+      <div class="metric-card"><div class="metric-label">Delivered</div><div class="metric-value" id="m-delivered">—</div><div class="metric-sub up">100% success rate</div></div>
+    </div>
+
+    <div id="history-container">
+      <div class="loading-row">Loading order history…</div>
+    </div>
+  </main>
+</div>
+<script type="module">
+import { initAuthGuard, signOutUser, auth } from "./js/auth.js";
+import { renderShell } from "./js/shell.js";
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { collection, getDocs, orderBy, query } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { db } from "./js/firebase-config.js";
+
+import { initAllAnimations } from "./js/animations.js";
+  renderShell("history", "Order History");
+initAuthGuard(true);
+  initAllAnimations();
+document.getElementById("signout-btn").addEventListener("click", signOutUser);
+
+onAuthStateChanged(auth, async user => {
+  if (!user) return;
+  const snap   = await getDocs(query(collection(db, "users", user.uid, "orders"), orderBy("placedAt","desc")));
+  const orders = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+  const totalSpent    = orders.reduce((s, o) => s + (o.total || 0), 0);
+  const totalSaved    = orders.reduce((s, o) => s + (o.couponSaving || 0), 0);
+  const totalDelivered = orders.filter(o => o.status === "delivered").length;
+
+  document.getElementById("m-orders").textContent    = orders.length || "0";
+  document.getElementById("m-spent").textContent     = `₹${totalSpent.toLocaleString("en-IN")}`;
+  document.getElementById("m-savings-sub").textContent = `₹${totalSaved} saved via agent`;
+  document.getElementById("m-delivered").textContent = `${totalDelivered}/${orders.length}`;
+
+  const container = document.getElementById("history-container");
+
+  if (!orders.length) {
+    container.innerHTML = `<div class="loading-row">No orders yet. Approve a cart to place your first order.</div>`;
+    return;
+  }
+
+  // Group by month
+  const groups = {};
+  orders.forEach(o => {
+    const d   = o.placedAt?.toDate ? o.placedAt.toDate() : new Date();
+    const key = d.toLocaleString("en-IN", { month: "long", year: "numeric" });
+    if (!groups[key]) groups[key] = [];
+    groups[key].push({ ...o, _date: d });
+  });
+
+  const platformColors = { Blinkit:"#22C55E", Zepto:"#A855F7", "Swiggy Instamart":"#FF6B00", BigBasket:"#22C55E" };
+
+  container.innerHTML = Object.entries(groups).map(([month, monthOrders]) => `
+    <div class="month-label">${month}</div>
+    <div class="card" style="padding:0;overflow:hidden;margin-bottom:16px">
+      <table class="history-table">
+        <thead><tr><th>Order</th><th>Platform</th><th>Items</th><th>Amount</th><th>Savings</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          ${monthOrders.map(o => `
+            <tr>
+              <td>
+                <div style="font-weight:500">${o.orderId || "#" + o.id.slice(-4)}</div>
+                <div style="font-size:11px;color:var(--muted)">${o._date.toLocaleDateString("en-IN", { day:"numeric", month:"short", hour:"2-digit", minute:"2-digit" })}</div>
+              </td>
+              <td>
+                <div class="platform-tag">
+                  <div class="platform-dot" style="background:${platformColors[o.platform] || "#2563EB"}"></div>
+                  ${o.platform || "Blinkit"}
+                </div>
+              </td>
+              <td><div class="items-preview">${(o.items || []).map(i => i.name).join(", ")}</div></td>
+              <td style="font-weight:600">₹${o.total || 0}</td>
+              <td><span class="badge badge-success">₹${o.couponSaving || 0} saved</span></td>
+              <td><span class="badge ${o.status === "delivered" ? "badge-success" : o.status === "placed" ? "badge-info" : "badge-muted"}">${o.status || "placed"}</span></td>
+              <td><button class="expand-btn">Details</button></td>
+            </tr>`).join("")}
+        </tbody>
+      </table>
+    </div>`).join("");
+
+  document.querySelectorAll(".expand-btn").forEach(btn =>
+    btn.addEventListener("click", () => showToast("Order details coming soon", "success"))
+  );
+});
+</script>
+</body>
+</html>
